@@ -7,8 +7,11 @@ const verifyServerIdentity = require('.././utils/serverAuthUtils').verifyServerI
 
 lang_router.post('/python', verifyServerIdentity, async (req, res) => {
     var code_to_execute = req.body.code;
+    var input_exec = req.body.input_exec;
     var id = uuidv4();
     var outputDataSet = [];
+    var errDataSet = [];
+    var exitData = { code: 99, signal: 0 };
     var running = true;
 
     //check for folder existence, if it doesn't exist create it
@@ -19,16 +22,39 @@ lang_router.post('/python', verifyServerIdentity, async (req, res) => {
     //create a file with the id
     fs.writeFileSync(`./code_exec/python/${id}.py`, code_to_execute, { flag: 'w' });
 
-    // 1. spawn a child process to run the python script
+    // spawn a child process to run the python script
     const python = spawn('python', [`./code_exec/python/${id}.py`]);
 
-    // 2. collect data from script
+    // collect data from script
     python.stdout.on('data', function (data) {
         outputDataSet.push(data.toString());
         //console.log(data.toString(), end = '');
     });
 
-    // 3. send data to client
+    // send input to spawned process
+    python.stdin.write(input_exec.join('\n') + '\n');
+    python.stdin.end();
+
+    // store errors raised during execution
+    python.stderr.on('data', function (data) {
+        //console.log('stdout: ' + data);
+        errDataSet.push(data.toString());
+    });
+
+    // store spawn error
+    python.on('error', (err) => {
+        errDataSet.push(err.toString());
+        //console.log(err.toString(), end = '');
+    });
+
+    // store exit data
+    python.on('exit', (code, signal) => {
+        // console.log("exit", code, signal);
+        exitData.code = code;
+        exitData.signal = signal;
+    });
+
+    // send data to client
     python.on('close', (code) => {
         newOutputDataSet = [];
         for (i in outputDataSet) {
@@ -43,16 +69,15 @@ lang_router.post('/python', verifyServerIdentity, async (req, res) => {
         //console.log(`child process close all stdio with code ${code}`);
         res.send({
             data: newOutputDataSet,
-            code: code
+            code: code,
+            err: errDataSet,
+            exit: exitData
         });
         running = false;
         fs.unlinkSync(`./code_exec/python/${id}.py`);
     });
 
-    // FIXME: Handle Errors, No Error Handling Currently Occurs, We just absorb the error currently
-    //        Should Notify the user of the error(s).
-
-    /* 4. if the program has not executed within a given time frame lets say x seconds, its terminated.
+    /* if the program has not executed within a given time frame lets say x seconds, its terminated.
        NOTE: We Depend On Close Event Broadcast To Send Response To Client. No Response Handling is needed here.*/
     setTimeout(() => {
         if (running) {
