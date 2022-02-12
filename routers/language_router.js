@@ -4,7 +4,9 @@ const { spawn } = require('child_process');
 const uuidv4 = require('uuid').v4;
 const lang_router = express.Router();
 const verifyServerIdentity = require('.././utils/serverAuthUtils').verifyServerIdentity;
-
+lang_router.get('/', (req, res) => {
+    res.send('Language router');
+})
 lang_router.post('/python', verifyServerIdentity, async (req, res) => {
     var code_to_execute = req.body.code;
     var input_exec = req.body.input_exec;
@@ -23,7 +25,7 @@ lang_router.post('/python', verifyServerIdentity, async (req, res) => {
     fs.writeFileSync(`./code_exec/python/${id}.py`, code_to_execute, { flag: 'w' });
 
     // spawn a child process to run the python script
-    const python = spawn('python', [`./code_exec/python/${id}.py`]);
+    const python = spawn('python3', [`./code_exec/python/${id}.py`]);
 
     // collect data from script
     python.stdout.on('data', function (data) {
