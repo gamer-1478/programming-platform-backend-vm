@@ -60,11 +60,16 @@ lang_router.post('/python', verifyServerIdentity, async (req, res) => {
     python.on('close', (code) => {
         newOutputDataSet = [];
         for (i in outputDataSet) {
-            newOutputDataSet = newOutputDataSet.concat(outputDataSet[i].split('\r\n'));
+            if (outputDataSet[i].includes('\r\n')) {
+                newOutputDataSet = newOutputDataSet.concat(outputDataSet[i].split('\r\n'));
+            }
+            else if (outputDataSet[i].includes('\n')) {
+                newOutputDataSet = newOutputDataSet.concat(outputDataSet[i].split('\n'));
+            }
         }
         outputDataSet = []; // clear the array? What for, no idea. Lets just clear it.
 
-        if (newOutputDataSet[newOutputDataSet.length - 1] == ''){
+        if (newOutputDataSet[newOutputDataSet.length - 1] == '') {
             newOutputDataSet.pop();
         }
 
