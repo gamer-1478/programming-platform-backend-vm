@@ -212,7 +212,7 @@ lang_router.post('/gcc', verifyServerIdentity, async (req, res) => {
             }
 
             res.send({
-                exitData: sysExitData,
+                exit: sysExitData,
                 err: errDataSet
             });
         }
@@ -340,8 +340,8 @@ lang_router.post('/gpp', verifyServerIdentity, async (req, res) => {
             }
 
             res.send({
-                exitData: sysExitData,
-                errDataSet: errDataSet
+                exit: sysExitData,
+                err: errDataSet
             });
         }
 
