@@ -7,8 +7,6 @@ const express = require('express');
 //file imports
 const bloat_router = require('./routers/bloat.js');
 const language_router = require('./routers/language_router.js');
-const { verifyServerIdentity } = require('./utils/serverAuthUtils.js');
-const { serialiseOutput } = require('./utils/reuse.js');
 
 //constants
 const app = express();
