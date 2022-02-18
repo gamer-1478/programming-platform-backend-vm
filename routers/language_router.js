@@ -94,12 +94,12 @@ lang_router.post('/python2', verifyServerIdentity, async (req, res) => {
     var running = true;
 
     //check for folder existence, if it doesn't exist create it
-    if (!fs.existsSync('./code_exec/python/')) {
-        fs.mkdirSync('./code_exec/python/', { recursive: true });
+    if (!fs.existsSync('./code_exec/python2/')) {
+        fs.mkdirSync('./code_exec/python2/', { recursive: true });
     }
 
     //create a file with the id
-    fs.writeFileSync(`./code_exec/python/${id}.py`, code_to_execute, { flag: 'w' });
+    fs.writeFileSync(`./code_exec/python2/${id}.py`, code_to_execute, { flag: 'w' });
 
     // spawn a child process to run the python script
     const python = spawn('python2', [`./code_exec/python2/${id}.py`]);
@@ -145,7 +145,7 @@ lang_router.post('/python2', verifyServerIdentity, async (req, res) => {
             exit: exitData
         });
         running = false;
-        fs.unlinkSync(`./code_exec/python/${id}.py`);
+        fs.unlinkSync(`./code_exec/python2/${id}.py`);
     });
 
     /* if the program has not executed within a given time frame lets say x seconds, its terminated.
