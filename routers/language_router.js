@@ -182,6 +182,14 @@ lang_router.post('/gcc', verifyServerIdentity, async (req, res) => {
                 fs.unlinkSync(`./code_exec/gcc/${id}.c`);
                 fs.unlinkSync(`./code_exec/gcc/${id}.exe`);
             });
+
+            exe.stdout.on('error', function (err) {
+                if (err.code == "EPIPE") {
+                    exe.exit(0);
+                    errDataSet.push(err);
+                }
+            });
+
             // if the program has not executed within a given time frame lets say x seconds, its terminated.
             // NOTE: We Depend On Close Event Broadcast To Send Response To Client. No Response Handling is needed here.
             setTimeout(() => {
