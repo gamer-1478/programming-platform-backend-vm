@@ -10,7 +10,7 @@ lang_router.get('/', (req, res) => {
     res.send('Language router');
 })
 
-lang_router.post('/python', verifyServerIdentity, async (req, res) => {
+lang_router.post('/python3', verifyServerIdentity, async (req, res) => {
     var code_to_execute = req.body.code;
     var input_exec = req.body.input_exec;
     var id = uuidv4();
