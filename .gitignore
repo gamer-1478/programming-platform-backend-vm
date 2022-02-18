@@ -103,12 +103,10 @@ dist
 # TernJS port file
 .tern-port
 
-# Test Files
-test.html
-test.py
-
 # Exec Folders
 code_exec
 code_exec/*
 ./code_exec
 ./code_exec/*
+
+test.*
