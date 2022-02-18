@@ -213,7 +213,7 @@ lang_router.post('/gcc', verifyServerIdentity, async (req, res) => {
 
             res.send({
                 exitData: sysExitData,
-                errDataSet: errDataSet
+                err: errDataSet
             });
         }
 
