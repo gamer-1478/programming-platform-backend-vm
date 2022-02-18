@@ -139,9 +139,19 @@ lang_router.post('/gcc', verifyServerIdentity, async (req, res) => {
                 outputDataSet.push(data.toString());
             });
 
-            // send input to spawned process
-            exe.stdin.write(input_exec.join('\n') + '\n');
-            exe.stdin.end();
+            if (input_exec.length > 0) {
+                try {
+                    // send input to spawned process
+                    exe.stdin.write(input_exec.join('\n') + '\n');
+                    exe.stdin.end();
+                }
+                catch (e) {
+                    errDataSet.push(e.toString());
+                    exe.stdin.pause();
+                    exe.kill();
+                    running = false;
+                }
+            }
 
             // store errors raised during execution
             exe.stderr.on('data', function (data) {
