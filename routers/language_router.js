@@ -1,12 +1,15 @@
 const express = require('express');
 const fs = require('fs');
 const { spawn } = require('child_process');
+const { serialiseOutput } = require('../utils/reuse');
 const uuidv4 = require('uuid').v4;
 const lang_router = express.Router();
 const verifyServerIdentity = require('.././utils/serverAuthUtils').verifyServerIdentity;
+
 lang_router.get('/', (req, res) => {
     res.send('Language router');
 })
+
 lang_router.post('/python', verifyServerIdentity, async (req, res) => {
     var code_to_execute = req.body.code;
     var input_exec = req.body.input_exec;
@@ -58,20 +61,7 @@ lang_router.post('/python', verifyServerIdentity, async (req, res) => {
 
     // send data to client
     python.on('close', (code) => {
-        newOutputDataSet = [];
-        for (i in outputDataSet) {
-            if (outputDataSet[i].includes('\r\n')) {
-                newOutputDataSet = newOutputDataSet.concat(outputDataSet[i].split('\r\n'));
-            }
-            else if (outputDataSet[i].includes('\n')) {
-                newOutputDataSet = newOutputDataSet.concat(outputDataSet[i].split('\n'));
-            }
-        }
-        outputDataSet = []; // clear the array? What for, no idea. Lets just clear it.
-
-        if (newOutputDataSet[newOutputDataSet.length - 1] == '') {
-            newOutputDataSet.pop();
-        }
+        newOutputDataSet = serialiseOutput(outputDataSet);
 
         //console.log(`child process close all stdio with code ${code}`);
         res.send({
@@ -88,9 +78,264 @@ lang_router.post('/python', verifyServerIdentity, async (req, res) => {
        NOTE: We Depend On Close Event Broadcast To Send Response To Client. No Response Handling is needed here.*/
     setTimeout(() => {
         if (running) {
-            console.log('kill');
             python.stdin.pause();
             python.kill();
+        }
+    }, 15000);
+});
+
+lang_router.post('/gcc', verifyServerIdentity, async (req, res) => {
+    var outputDataSet = [];
+    var code_to_execute = req.body.code;
+    var input_exec = req.body.input_exec;
+    var id = uuidv4();
+    var errDataSet = [];
+    var sysExitData = { code: 99, signal: 0 };
+    var exitData = { code: 99, signal: 0 };
+    var sysRunning = true;
+    var running = true;
+
+    //check for folder existence, if it doesn't exist create it
+    if (!fs.existsSync('./code_exec/gcc/')) {
+        fs.mkdirSync('./code_exec/gcc/', { recursive: true });
+    }
+
+    //create a file with the id
+    fs.writeFileSync(`./code_exec/gcc/${id}.c`, code_to_execute, { flag: 'w' });
+
+    // spawn a child process to build compile the c file
+    const gcc = spawn('gcc', [`./code_exec/gcc/${id}.c`, '-o', `./code_exec/gcc/${id}.exe`]);
+
+    // store errors raised during execution
+    gcc.stderr.on('data', function (data) {
+        //console.log('stdout: ' + data);
+        errDataSet.push(data.toString());
+    });
+
+    // store spawn error
+    gcc.on('error', (err) => {
+        errDataSet.push(err.toString());
+        //console.log(err.toString(), end = '');
+    });
+
+    // store exit data
+    gcc.on('exit', (code, signal) => {
+        // console.log("exit", code, signal);
+        sysExitData.code = code;
+        sysExitData.signal = signal;
+    });
+
+    // send data to client
+    gcc.on('close', (code) => {
+        if (code === 0 || errDataSet.length === 0) {
+
+            sysRunning = false;
+
+            //spawn a child process to run the compiled file
+            const exe = spawn(`./code_exec/gcc/${id}.exe`);
+
+            // collect data from script
+            exe.stdout.on('data', function (data) {
+                outputDataSet.push(data.toString());
+            });
+
+            // send input to spawned process
+            exe.stdin.write(input_exec.join('\n') + '\n');
+            exe.stdin.end();
+
+            // store errors raised during execution
+            exe.stderr.on('data', function (data) {
+                errDataSet.push(data.toString());
+            });
+
+            // store spawn error
+            exe.on('error', (err) => {
+                errDataSet.push(err.toString());
+            });
+
+            // store exit data
+            exe.on('exit', (code, signal) => {
+                exitData.code = code;
+                exitData.signal = signal;
+            });
+
+            // send data to client
+            exe.on('close', (code) => {
+                newOutputDataSet = serialiseOutput(outputDataSet);
+                res.send({
+                    data: newOutputDataSet,
+                    code: code,
+                    err: errDataSet,
+                    exit: exitData
+                });
+                running = false;
+                fs.unlinkSync(`./code_exec/gcc/${id}.c`);
+                fs.unlinkSync(`./code_exec/gcc/${id}.exe`);
+            });
+            // if the program has not executed within a given time frame lets say x seconds, its terminated.
+            // NOTE: We Depend On Close Event Broadcast To Send Response To Client. No Response Handling is needed here.
+            setTimeout(() => {
+                if (running) {
+                    exe.stdin.pause();
+                    exe.kill();
+                }
+            }, 15000);
+
+        } else {
+            if (code) {
+                sysRunning = false;
+            }
+
+            if (fs.existsSync(`./code_exec/gcc/${id}.c`)) {
+                fs.unlinkSync(`./code_exec/gcc/${id}.c`);
+            }
+            if (fs.existsSync(`./code_exec/gcc/${id}.exe`)) {
+                fs.unlinkSync(`./code_exec/gcc/${id}.exe`);
+            }
+
+            res.send({
+                exitData: sysExitData,
+                errDataSet: errDataSet
+            });
+        }
+
+    });
+
+    /* if the program has not executed within a given time frame lets say x seconds, its terminated.
+       NOTE: We Depend On Close Event Broadcast To Send Response To Client. No Response Handling is needed here.*/
+    setTimeout(() => {
+        if (sysRunning) {
+            console.log("build timeout, if this is reached 💀🤨");
+            gcc.stdin.pause();
+            gcc.kill();
+        }
+    }, 15000);
+});
+
+lang_router.post('/gpp', verifyServerIdentity, async (req, res) => {
+    var outputDataSet = [];
+    var code_to_execute = req.body.code;
+    var input_exec = req.body.input_exec;
+    var id = uuidv4();
+    var errDataSet = [];
+    var sysExitData = { code: 99, signal: 0 };
+    var exitData = { code: 99, signal: 0 };
+    var sysRunning = true;
+    var running = true;
+
+    //check for folder existence, if it doesn't exist create it
+    if (!fs.existsSync('./code_exec/gpp/')) {
+        fs.mkdirSync('./code_exec/gpp/', { recursive: true });
+    }
+
+    //create a file with the id
+    fs.writeFileSync(`./code_exec/gpp/${id}.c`, code_to_execute, { flag: 'w' });
+
+    // spawn a child process to build compile the c file
+    const gpp = spawn('g++', [`./code_exec/gpp/${id}.c`, '-o', `./code_exec/gpp/${id}.exe`]);
+
+    // store errors raised during execution
+    gpp.stderr.on('data', function (data) {
+        //console.log('stdout: ' + data);
+        errDataSet.push(data.toString());
+    });
+
+    // store spawn error
+    gpp.on('error', (err) => {
+        errDataSet.push(err.toString());
+        //console.log(err.toString(), end = '');
+    });
+
+    // store exit data
+    gpp.on('exit', (code, signal) => {
+        // console.log("exit", code, signal);
+        sysExitData.code = code;
+        sysExitData.signal = signal;
+    });
+
+    // send data to client
+    gpp.on('close', (code) => {
+        if (code === 0 || errDataSet.length === 0) {
+
+            sysRunning = false;
+
+            //spawn a child process to run the compiled file
+            const exe = spawn(`./code_exec/gpp/${id}.exe`);
+
+            // collect data from script
+            exe.stdout.on('data', function (data) {
+                outputDataSet.push(data.toString());
+            });
+
+            // send input to spawned process
+            exe.stdin.write(input_exec.join('\n') + '\n');
+            exe.stdin.end();
+
+            // store errors raised during execution
+            exe.stderr.on('data', function (data) {
+                errDataSet.push(data.toString());
+            });
+
+            // store spawn error
+            exe.on('error', (err) => {
+                errDataSet.push(err.toString());
+            });
+
+            // store exit data
+            exe.on('exit', (code, signal) => {
+                exitData.code = code;
+                exitData.signal = signal;
+            });
+
+            // send data to client
+            exe.on('close', (code) => {
+                newOutputDataSet = serialiseOutput(outputDataSet);
+                res.send({
+                    data: newOutputDataSet,
+                    code: code,
+                    err: errDataSet,
+                    exit: exitData
+                });
+                running = false;
+                fs.unlinkSync(`./code_exec/gpp/${id}.c`);
+                fs.unlinkSync(`./code_exec/gpp/${id}.exe`);
+            });
+            // if the program has not executed within a given time frame lets say x seconds, its terminated.
+            // NOTE: We Depend On Close Event Broadcast To Send Response To Client. No Response Handling is needed here.
+            setTimeout(() => {
+                if (running) {
+                    exe.stdin.pause();
+                    exe.kill();
+                }
+            }, 15000);
+
+        } else {
+            if (code) {
+                sysRunning = false;
+            }
+
+            if (fs.existsSync(`./code_exec/gpp/${id}.c`)) {
+                fs.unlinkSync(`./code_exec/gpp/${id}.c`);
+            }
+            if (fs.existsSync(`./code_exec/gpp/${id}.exe`)) {
+                fs.unlinkSync(`./code_exec/gpp/${id}.exe`);
+            }
+
+            res.send({
+                exitData: sysExitData,
+                errDataSet: errDataSet
+            });
+        }
+
+    });
+
+    /* if the program has not executed within a given time frame lets say x seconds, its terminated.
+       NOTE: We Depend On Close Event Broadcast To Send Response To Client. No Response Handling is needed here.*/
+    setTimeout(() => {
+        if (sysRunning) {
+            console.log("build timeout, if this is reached 💀🤨");
+            gpp.stdin.pause();
+            gpp.kill();
         }
     }, 15000);
 });
