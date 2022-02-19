@@ -80,6 +80,7 @@ lang_router.post('/python3', verifyServerIdentity, async (req, res) => {
         if (running) {
             python.stdin.pause();
             python.kill();
+            console.log('Python3 Killed');
         }
     }, 15000);
 });
@@ -152,6 +153,7 @@ lang_router.post('/python2', verifyServerIdentity, async (req, res) => {
        NOTE: We Depend On Close Event Broadcast To Send Response To Client. No Response Handling is needed here.*/
     setTimeout(() => {
         if (running) {
+            console.log('Python2 Killed');
             python.stdin.pause();
             python.kill();
         }
@@ -268,6 +270,7 @@ lang_router.post('/gcc', verifyServerIdentity, async (req, res) => {
             // NOTE: We Depend On Close Event Broadcast To Send Response To Client. No Response Handling is needed here.
             setTimeout(() => {
                 if (running) {
+                    console.log('GCC Killed');
                     exe.stdin.pause();
                     exe.kill();
                 }
@@ -396,6 +399,7 @@ lang_router.post('/gpp', verifyServerIdentity, async (req, res) => {
             // NOTE: We Depend On Close Event Broadcast To Send Response To Client. No Response Handling is needed here.
             setTimeout(() => {
                 if (running) {
+                    console.log('GPP Killed');
                     exe.stdin.pause();
                     exe.kill();
                 }
@@ -524,6 +528,7 @@ lang_router.post('/mcs', verifyServerIdentity, async (req, res) => {
             // NOTE: We Depend On Close Event Broadcast To Send Response To Client. No Response Handling is needed here.
             setTimeout(() => {
                 if (running) {
+                    console.log('MCS Killed');
                     exe.stdin.pause();
                     exe.kill();
                 }
