@@ -61,6 +61,7 @@ lang_router.post('/python3', verifyServerIdentity, async (req, res) => {
 
     // send data to client
     python.on('close', (code) => {
+        console.log("close Python3");
         newOutputDataSet = serialiseOutput(outputDataSet);
 
         //console.log(`child process close all stdio with code ${code}`);
