@@ -10,4 +10,10 @@ npm run dev (to run in development)
 npm start (to run in production etc)
 ```
 
-## We Prefer you Run It In A Vm And Place The Ip In the Front-end, i.e instace of [programming-platform](https://github.com/techsyndicate/Programming-Platform)
+<h3> We Prefer you Run It In A Vm And Place The Ip In the Front-end, i.e instace of [programming-platform](https://github.com/techsyndicate/Programming-Platform)</h3>
+
+<h3> If you Face Any Issue While Deploying Your Own Version Of Our App, Please Feel Free To Start A Issue.</h3>
+
+
+# Contributors
+1. [@gamer-1478](https://aayushgarg.net)
