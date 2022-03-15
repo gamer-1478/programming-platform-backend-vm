@@ -1,23 +1,30 @@
 function serialiseOutput(outputDataSet) {
-    newOutputDataSet = [];
+    console.log(outputDataSet);
+    var newOutputDataSet = [];
     for (i in outputDataSet) {
         if (outputDataSet[i].includes('\r\n')) {
-            newOutputDataSet = newOutputDataSet.concat(outputDataSet[i].split('\r\n'));
+            var a = outputDataSet[i].split('\r\n');
+            if (a[a.length - 1] == '') {
+                a.pop();
+            }
+            newOutputDataSet = newOutputDataSet.concat(a);
         }
         else if (outputDataSet[i].includes('\n')) {
-            newOutputDataSet = newOutputDataSet.concat(outputDataSet[i].split('\n'));
+            var a = outputDataSet[i].split('\n')
+            if (a[a.length - 1] == '') {
+                a.pop();
+            }
+            newOutputDataSet = newOutputDataSet.concat(a);
         }
         else {
             newOutputDataSet = newOutputDataSet.concat(outputDataSet[i]);
         }
     }
     outputDataSet = null;
-
-    if (newOutputDataSet[newOutputDataSet.length - 1] == '') {
-        newOutputDataSet.pop();
-    }
-
     return newOutputDataSet;
 }
 
-module.exports = {serialiseOutput};
+let o = ["5","","1 0","","2 1","3 2","","4 3","","5 4"]
+let O = ["5","","1 0","","2 1","3 2","4 3","5 4"]
+
+module.exports = { serialiseOutput };

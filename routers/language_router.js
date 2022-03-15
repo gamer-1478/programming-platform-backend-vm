@@ -5,6 +5,8 @@ const { serialiseOutput } = require('../utils/reuse');
 const uuidv4 = require('uuid').v4;
 const lang_router = express.Router();
 const verifyServerIdentity = require('.././utils/serverAuthUtils').verifyServerIdentity;
+var vm = require('vm');
+var { Script, createContext } = require('vm');
 
 lang_router.get('/', (req, res) => {
     res.send('Language router');
@@ -562,6 +564,83 @@ lang_router.post('/mcs', verifyServerIdentity, async (req, res) => {
             console.log("build timeout, if this is reached 💀🤨");
             mcs.stdin.pause();
             mcs.kill();
+        }
+    }, 15000);
+});
+
+lang_router.post('/javascript', async (req, res) => {
+    var code_to_execute = req.body.code;
+    var input_exec = req.body.input_exec;
+    var id = uuidv4();
+    var outputDataSet = [];
+    var errDataSet = [];
+    var exitData = { code: 99, signal: 0 };
+    var running = true;
+
+    code_to_execute = `
+    var input = ${'['+input_exec+']'};
+    ${code_to_execute};
+    `
+    
+    //check for folder existence, if it doesn't exist create it
+    if (!fs.existsSync('./code_exec/javascript/')) {
+        fs.mkdirSync('./code_exec/javascript/', { recursive: true });
+    }
+
+    //create a file with the id
+    fs.writeFileSync(`./code_exec/javascript/${id}.js`, code_to_execute, { flag: 'w' });
+
+    // spawn a child process to run the javascript script
+    const javascript = spawn('node', [`./code_exec/javascript/${id}.js`]);
+
+    // collect data from script
+    javascript.stdout.on('data', function (data) {
+        outputDataSet.push(data.toString());
+        //console.log(data.toString(), end = '');
+    });
+
+    // store errors raised during execution
+    javascript.stderr.on('data', function (data) {
+        //console.log('stdout: ' + data);
+        errDataSet.push(data.toString());
+    });
+
+    // store spawn error
+    javascript.on('error', (err) => {
+        errDataSet.push(err.toString());
+        //console.log(err.toString(), end = '');
+    });
+
+    // store exit data
+    javascript.on('exit', (code, signal) => {
+        // console.log("exit", code, signal);
+        exitData.code = code;
+        exitData.signal = signal;
+    });
+
+    // send data to client
+    javascript.on('close', (code) => {
+        console.log("close node");
+        newOutputDataSet = serialiseOutput(outputDataSet);
+
+        //console.log(`child process close all stdio with code ${code}`);
+        res.send({
+            data: newOutputDataSet,
+            code: code,
+            err: errDataSet,
+            exit: exitData
+        });
+        running = false;
+        fs.unlinkSync(`./code_exec/javascript/${id}.js`);
+    });
+
+    /* if the program has not executed within a given time frame lets say x seconds, its terminated.
+       NOTE: We Depend On Close Event Broadcast To Send Response To Client. No Response Handling is needed here.*/
+    setTimeout(() => {
+        if (running) {
+            javascript.stdin.pause();
+            javascript.kill();
+            console.log('node Killed');
         }
     }, 15000);
 });
