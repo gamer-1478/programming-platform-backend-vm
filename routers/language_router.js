@@ -576,9 +576,9 @@ lang_router.post('/javascript', async (req, res) => {
     var errDataSet = [];
     var exitData = { code: 99, signal: 0 };
     var running = true;
-
+    
     code_to_execute = `
-    var input = ${'['+input_exec+']'};
+    var input = ${ '[' + input_exec.map((i) => { return '"' + i + '"' }) + ']' };
     ${code_to_execute};
     `
     

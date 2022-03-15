@@ -1,5 +1,4 @@
 function serialiseOutput(outputDataSet) {
-    console.log(outputDataSet);
     var newOutputDataSet = [];
     for (i in outputDataSet) {
         if (outputDataSet[i].includes('\r\n')) {
@@ -23,8 +22,5 @@ function serialiseOutput(outputDataSet) {
     outputDataSet = null;
     return newOutputDataSet;
 }
-
-let o = ["5","","1 0","","2 1","3 2","","4 3","","5 4"]
-let O = ["5","","1 0","","2 1","3 2","4 3","5 4"]
 
 module.exports = { serialiseOutput };
