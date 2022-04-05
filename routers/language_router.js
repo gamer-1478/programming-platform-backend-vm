@@ -330,7 +330,7 @@ lang_router.post('/gpp', verifyServerIdentity, async (req, res) => {
     fs.writeFileSync(`./code_exec/gpp/${id}.c`, code_to_execute, { flag: 'w' });
 
     // spawn a child process to build compile the c file
-    const gpp = spawn('g++', [`./code_exec/gpp/${id}.c`, '-o', `./code_exec/gpp/${id}.exe`]);
+    const gpp = spawn('c++', [`./code_exec/gpp/${id}.c`, '-o', `./code_exec/gpp/${id}.exe`]);
 
     // store errors raised during execution
     gpp.stderr.on('data', function (data) {
