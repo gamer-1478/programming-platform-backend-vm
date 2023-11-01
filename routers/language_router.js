@@ -30,10 +30,15 @@ lang_router.post('/python3', verifyServerIdentity, async (req, res) => {
     fs.writeFileSync(`./code_exec/python/${id}.py`, code_to_execute, { flag: 'w' });
 
     // spawn a child process to run the python script
-    const python = spawn('python3', [`./code_exec/python/${id}.py`]);
+    const python = spawn('python', [`./code_exec/python/${id}.py`], { timeout: 2000 });
 
     // collect data from script
     python.stdout.on('data', function (data) {
+        if (outputDataSet.length > 100) {
+            python.stdin.pause();
+            python.kill();
+            errDataSet.push("Output Limit Exceeded");
+        }
         outputDataSet.push(data.toString());
         //console.log(data.toString(), end = '');
     });
@@ -61,11 +66,17 @@ lang_router.post('/python3', verifyServerIdentity, async (req, res) => {
         exitData.signal = signal;
     });
 
+
     // send data to client
     python.on('close', (code) => {
         console.log("close Python3");
-        newOutputDataSet = serialiseOutput(outputDataSet);
-
+        var newOutputDataSet = serialiseOutput(outputDataSet);
+        console.log({
+            data: newOutputDataSet,
+            code: code,
+            err: errDataSet,
+            exit: exitData
+        });
         //console.log(`child process close all stdio with code ${code}`);
         res.send({
             data: newOutputDataSet,
@@ -77,15 +88,16 @@ lang_router.post('/python3', verifyServerIdentity, async (req, res) => {
         fs.unlinkSync(`./code_exec/python/${id}.py`);
     });
 
-    /* if the program has not executed within a given time frame lets say x seconds, its terminated.
+/* if the program has not executed within a given time frame lets say x seconds, its terminated.
        NOTE: We Depend On Close Event Broadcast To Send Response To Client. No Response Handling is needed here.*/
     setTimeout(() => {
         if (running) {
             python.stdin.pause();
+            errDataSet.push("Timeout");
             python.kill();
             console.log('Python3 Killed');
         }
-    }, 15000);
+    }, 10000);
 });
 
 lang_router.post('/python2', verifyServerIdentity, async (req, res) => {
@@ -110,6 +122,12 @@ lang_router.post('/python2', verifyServerIdentity, async (req, res) => {
 
     // collect data from script
     python.stdout.on('data', function (data) {
+        if (outputDataSet.length > 100) {
+            python.stdin.pause();
+            python.kill();
+            errDataSet.push("Output Limit Exceeded");
+        }
+
         outputDataSet.push(data.toString());
         //console.log(data.toString(), end = '');
     });
@@ -157,10 +175,11 @@ lang_router.post('/python2', verifyServerIdentity, async (req, res) => {
     setTimeout(() => {
         if (running) {
             console.log('Python2 Killed');
+            errDataSet.push("Timeout");
             python.stdin.pause();
             python.kill();
         }
-    }, 15000);
+    }, 10000);
 });
 
 lang_router.post('/gcc', verifyServerIdentity, async (req, res) => {
@@ -187,6 +206,12 @@ lang_router.post('/gcc', verifyServerIdentity, async (req, res) => {
 
     // store errors raised during execution
     gcc.stderr.on('data', function (data) {
+        if (outputDataSet.length > 100) {
+            python.stdin.pause();
+            python.kill();
+            errDataSet.push("Output Limit Exceeded");
+        }
+
         //console.log('stdout: ' + data);
         errDataSet.push(data.toString());
     });
@@ -274,10 +299,11 @@ lang_router.post('/gcc', verifyServerIdentity, async (req, res) => {
             setTimeout(() => {
                 if (running) {
                     console.log('GCC Killed');
+                    errDataSet.push("Timeout");
                     exe.stdin.pause();
                     exe.kill();
                 }
-            }, 15000);
+            }, 10000);
 
         } else {
             if (code) {
@@ -304,10 +330,11 @@ lang_router.post('/gcc', verifyServerIdentity, async (req, res) => {
     setTimeout(() => {
         if (sysRunning) {
             console.log("build timeout, if this is reached 💀🤨");
+            errDataSet.push("Timeout");
             gcc.stdin.pause();
             gcc.kill();
         }
-    }, 15000);
+    }, 10000);
 });
 
 lang_router.post('/gpp', verifyServerIdentity, async (req, res) => {
@@ -334,6 +361,12 @@ lang_router.post('/gpp', verifyServerIdentity, async (req, res) => {
 
     // store errors raised during execution
     gpp.stderr.on('data', function (data) {
+        if (outputDataSet.length > 100) {
+            python.stdin.pause();
+            python.kill();
+            errDataSet.push("Output Limit Exceeded");
+        }
+
         //console.log('stdout: ' + data);
         errDataSet.push(data.toString());
     });
@@ -403,10 +436,11 @@ lang_router.post('/gpp', verifyServerIdentity, async (req, res) => {
             setTimeout(() => {
                 if (running) {
                     console.log('GPP Killed');
+                    errDataSet.push("Timeout");
                     exe.stdin.pause();
                     exe.kill();
                 }
-            }, 15000);
+            }, 10000);
 
         } else {
             if (code) {
@@ -433,10 +467,11 @@ lang_router.post('/gpp', verifyServerIdentity, async (req, res) => {
     setTimeout(() => {
         if (sysRunning) {
             console.log("build timeout, if this is reached 💀🤨");
+            errDataSet.push("Timeout");
             gpp.stdin.pause();
             gpp.kill();
         }
-    }, 15000);
+    }, 10000);
 });
 
 lang_router.post('/mcs', verifyServerIdentity, async (req, res) => {
@@ -463,6 +498,12 @@ lang_router.post('/mcs', verifyServerIdentity, async (req, res) => {
 
     // store errors raised during execution
     mcs.stderr.on('data', function (data) {
+        if (outputDataSet.length > 100) {
+            python.stdin.pause();
+            python.kill();
+            errDataSet.push("Output Limit Exceeded");
+        }
+
         //console.log('stdout: ' + data);
         errDataSet.push(data.toString());
     });
@@ -532,10 +573,11 @@ lang_router.post('/mcs', verifyServerIdentity, async (req, res) => {
             setTimeout(() => {
                 if (running) {
                     console.log('MCS Killed');
+                    errDataSet.push("Timeout");
                     exe.stdin.pause();
                     exe.kill();
                 }
-            }, 15000);
+            }, 10000);
 
         } else {
             if (code) {
@@ -562,10 +604,12 @@ lang_router.post('/mcs', verifyServerIdentity, async (req, res) => {
     setTimeout(() => {
         if (sysRunning) {
             console.log("build timeout, if this is reached 💀🤨");
+            errDataSet.push("Timeout");
+
             mcs.stdin.pause();
             mcs.kill();
         }
-    }, 15000);
+    }, 10000);
 });
 
 lang_router.post('/javascript', async (req, res) => {
@@ -595,6 +639,12 @@ lang_router.post('/javascript', async (req, res) => {
 
     // collect data from script
     javascript.stdout.on('data', function (data) {
+        if (outputDataSet.length > 100) {
+            python.stdin.pause();
+            python.kill();
+            errDataSet.push("Output Limit Exceeded");
+        }
+
         outputDataSet.push(data.toString());
         //console.log(data.toString(), end = '');
     });
@@ -640,9 +690,10 @@ lang_router.post('/javascript', async (req, res) => {
         if (running) {
             javascript.stdin.pause();
             javascript.kill();
+            errDataSet.push("Timeout");
             console.log('node Killed');
         }
-    }, 15000);
+    }, 10000);
 });
 
 module.exports = lang_router;
