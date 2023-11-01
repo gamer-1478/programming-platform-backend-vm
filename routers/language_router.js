@@ -30,7 +30,7 @@ lang_router.post('/python3', verifyServerIdentity, async (req, res) => {
     fs.writeFileSync(`./code_exec/python/${id}.py`, code_to_execute, { flag: 'w' });
 
     // spawn a child process to run the python script
-    const python = spawn('python', [`./code_exec/python/${id}.py`], { timeout: 2000 });
+    const python = spawn('python3', [`./code_exec/python/${id}.py`], { timeout: 2000 });
 
     // collect data from script
     python.stdout.on('data', function (data) {
